@@ -1,0 +1,117 @@
+---
+title: "Relationship between fire fighting facilities and conomic losses in the fire incidents"
+author: "Wanqi Huang"
+date: "05/02/2022"
+output: pdf_document
+abstract: "Analyzing fire occurrence datasets is a way to help fire agencies develop fire prevention and public education programs, improve response to fire emergencies, evaluate the efficiency of fire protection facilities, and improve fire protection facilities to minimize economic losses after a fire incident. According to the fire incident dataset, the majority of incidents with the most damage after a fire had fire facility operation, this report uses the fire incident data set to analyze whether fire protection facilities: smoke alarms, fire alarms, and Sprinkler System can warn people around fires in advance and reduce the damage caused by fires, also the reason that instead of reducing economic losses after a fire event, fire protection facilities are mostly activated in fires that produce high losses."
+bibliogrphy: ref_list.bib
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo=FALSE,include=FALSE}
+library(tidyverse)
+library(opendatatoronto)
+library(dplyr)
+library(kableExtra)
+
+# get package
+package <- show_package("64a26694-01dc-4ec3-aa87-ad8509604f50")
+package
+
+# get all resources for this package
+resources <- list_package_resources("64a26694-01dc-4ec3-aa87-ad8509604f50")
+
+# identify datastore resources; by default, Toronto Open Data sets datastore resource format to CSV for non-geospatial and GeoJSON for geospatial resources
+datastore_resources <- filter(resources, tolower(format) %in% c('csv', 'geojson'))
+
+# load the first datastore resource as a sample
+data <- filter(datastore_resources, row_number()==1) %>% get_resource()
+data
+```
+
+# 1. Introdcution
+The National Fire Incident Reporting System of the Fire Administration and the survey of fire departments conducted by the National Fire Protection Association both reveal that in 2003 to 2006, 31% of reported home fires resulted in smoke alarms not being installed, and 40% of home fire deaths occurred without smoke alarms. In 9% of the reported fires and 23% of the fatalities, smoke alarms failed to operate. The 47 percent of fires occurring in homes with active smoke alarms resulted in 37 percent of the deaths. Sprinkler fires account for around half of all significant fires in sprinklers structures and three-quarters of all fires that cause structural damage.
+
+Unlike the public perception that firefighting facilities can reduce physical or financial harm from fires, these firefighting facilities have some limitations and shortcomings since they are tools. Smoke alarms, Fire alarms, and Sprinkler systems may require a large enough amount of smoke to start the fire or need the fire to be in a certain area to activate or send out the highest efficiency. However, a large smoke and a certain area of the fire means that the fire has been going on for some time, or not the first time to send out an alarm to warn people around the fire to make emergency measures. Therefore, fire facilities that have been activated will lose more than those that have not, because fire facilities that have not been activated may mean that the source of the fire is small, while fire facilities that have been activated indicate that the fire has reached a certain level.
+
+When evaluating existing technology or considering the benefits of possible improvements, it is necessary to know exactly how the existing technology is actually being used and what it can reasonably be expected to accomplish.
+The dataset will be processed and analyzed in R [@R]and tidyverse [@AAA], dplyr [@dpl] packages. Figures and tables will be created with ggplot2 [@gg] and kableextra. [@kable]
+
+
+# 2. Data
+## 2.1 Data source
+This report utilizes dataset consists of information similar to what is sent to the Ontario Fire Marshal (OFM) regarding fire incidents to which Toronto Fire responds with more detail than the dataset which includes all types of incidents. The Office of the Fire Marshal aims to reduce the impact of fire and other public safety hazards on people, property, and the environment in the province of Ontario by providing leadership and expertise. The other responsibilities of OFM is that: Administration of province-wide emergency systems involving fire services, Investigating fire incidents, Statistic maintenance related to fires, Applied research.The fire incidents analyzed in this report were obtained in csv format from the City of Toronto Open Data Portal, using the R package opendatatoronto (Gelfand). The last update of the dataset was made on January 31st, 2022.
+
+## 2.2 Methodology and Data Collection
+The dataset contains the information of fire incidents from 2011 to 2018 from Toronto Fire Service (TFS) responses.
+Fire incidents are only accounted for in this dataset as defined by the Ontario Fire Marshal. OFM did not specify how the fire events in the data were defined. According to Fire Protection and Prevention Act (FPPA), The Fire Marshal is responsible for investigating the origin, cause, and circumstances of any fire, explosion. However, it is not clear whether these investigated fire events will still be recorded in the dataset, whether there are explosions in the dataset, whether fires reported to OFM by residents not belonging to Ontario will be recorded in the dataset, or whether accidental fires in the forest are included in the dataset.
+
+According to the research, the fire incidents recorded in this research included malicious false alarms and accounted for 6.05% of all incidents, and the malicious false alarms is more prevalent in areas with lower proportions of childless couples and lower percentages of car ownership.[@TWOFirst]
+
+However, we do not know the definition of fire in OFM, so we do not know whether malicious false alarms are included in the dataset. This bias can lead to miscalculation of the number of fires, or can affect the analysis of the efficiency of the use of fire alarms in fires, and can also lead to unnecessary consumption of resources by incorrectly assigned firefighters, delaying the fires incidents that really need OFM.
+
+## 2.3 Data Characteristics
+
+The raw data includes 43 variables and 17536 observations. The variables this reported will focus on 4 variables: Estimated_Dollar_Loss is a numerical variable which means the amount of dollar that predicted to be lost after a fire incident. Fire_Alarm_System_Presence, Smoke_Alarm_at_Fire_Origin, Sprinkler_System_Operation are three categorical variables. Fire_Alarm_System_Presence means Fire Alarm System Presence code and description, Smoke_Alarm_at_Fire_Origin means Smoke Alarm at Fire Origin code and description, Sprinkler_System_Operation means Sprinkler System Operation code and description. Other variables that do not need to be used in this report are removed before analysis. I cleaned the missing value in the dataset 
+
+### 2.3.1 Fire Alarm System and Estimated Dollar Lost
+
+In Tokyo, the installation rate of residential fire alarms per household is 80.6%. Meaning that the fire alarm's ability to prevent a fire or to reduce damage after a fire has occurred is supported by the data. This is because even if people are unable to hear the fire alarm in some cases, such as when they are asleep or deaf, and cannot hear the fire alarm in time to initiate a response to a fire event or take emergency measures, other family members and/or neighbors outside the room where the fire started are more likely to hear the sound and initiate a response to the fire event. Therefore, fire alarms can reduce casualties by warning people involved in a fire and those nearby when a fire occurs.[@TWOSec]
+
+
+```{r hist, fig.cap = "Relationship between presence of fire alarms and estimated dollar lost", fig.width=10, fig.height=4, message=FALSE, echo=FALSE}
+data1<-data %>% group_by(Fire_Alarm_System_Presence) %>% summarise(Total = sum(Estimated_Dollar_Loss))
+data1 %>% filter(!is.na(Fire_Alarm_System_Presence)) %>% ggplot(aes( y=Total , x=Fire_Alarm_System_Presence)) + 
+    geom_bar(position="dodge", stat="identity")
+```
+
+The y-axis is the total estimated dollar loss after each fire incidents. This figure is a group of data about relationship between presence of fire alarms and estimated dollar loss. The third column is some situation that the fire alarm is not applicable for example, bldg not classified by OBC. OBC is The Ontario Building Code which is used to find the exceptions for major occupancies. An area of less than 10% of the floor area of the storey of a building may not be considered to be a major occupancy in a building in which all major occupancies are located in one Group or Division.According to this Ontario Building Code this is the reason why the fire alarms are not applicable is may because the building is not considered to be a major occupancy. However, the data from the figure 1 is seems that having smoke alarms does not necessarily reduce property damage after a fire.
+
+
+
+```{r hist1, fig.cap = "Relationship between operation of fire alarm in fire incident", fig.width=8, fig.height=8, message=FALSE, echo=FALSE}
+data %>% filter(!is.na(Fire_Alarm_System_Operation )) %>% 
+  ggplot(aes(x= Fire_Alarm_System_Presence, fill = Fire_Alarm_System_Operation )) + geom_bar() + theme_classic()+
+  geom_text(stat = 'count',aes(label =..count.., vjust =-2))+
+  labs(x = "Fire_Alarm_System_Presence", y = "Number of Fire Incidents", title = "Fire_Alarm_System_Operation in Fire Incidents")
+```
+
+From the figure, the fire alarms were not activated in 19.7% of the total cases, and fire alarms were successfully activated in 71.3% of the total cases. The rapid detection of fires by high-sensitivity fire alarms aids in the prevention of fires by detecting fire situations in advance and assisting in the control of fires.[@TWOThir]
+There are some fire scenes where even though there is a fire alarm, it may not be a highly sophisticated fire alarm that delays some of the alarms and may not be able to reduce the economic loss by giving an alarm before the fire occurs.
+
+### 2.3.2 Smoke Alarm System and Estimated Dollar Lost
+
+Smoke alarms were used in 37% of fires reported to the fire department, while 62% of fires with smoke alarms and adequate smoke resulted in fatalities. For smoke alarms to be effective, they must have a working power source, be close enough to smoke to activate, must be audible, and the occupants must take appropriate action. [@TWOF]
+
+
+
+```{r hist2, fig.cap = "Relationship between smoke alarms and estimated dollar lost", fig.width=12, fig.height=4, message=FALSE, echo=FALSE}
+data1<-data %>% group_by(Smoke_Alarm_at_Fire_Origin) %>% summarise(Total = sum(Estimated_Dollar_Loss))
+data1 %>% filter(!is.na(Smoke_Alarm_at_Fire_Origin)) %>% ggplot(aes( y=Total , x=Smoke_Alarm_at_Fire_Origin)) + 
+    geom_bar(position="dodge", stat="identity")
+```
+
+The y-axis is the total estimated dollar loss after each fire incidents. Expect the undetermined of the presence of the smoke alarm, a fire scene with smoke alarms and smoke alarms that have been operated is the situation that predicts the greatest dollar loss from a fire incident so that the data conforms to the reference. Furthermore, smoke alarms will operate when the room has been a large amount of smoke, and this situation will make the fire cannot be alarm at the first time, but the fire has been occurring for some time before the alarm is issued, and this situation will not only reduce the time for people to escape but also the same will make the fire bigger, take more time to put out the fire, and will cause more economic losses.
+For non-smoke-alarm households, the number of casualties per reported fire is lower compared to smoke-alarm households, which may be a result of changes in behavior when smoke alarms are present in the home or that less serious fires are extinguished more quickly with smoke alarms at home.[@TWOFi]
+
+### 2.3.3 Sprinkler System and Estimated Dollar Lost
+
+This preliminary investigation considered whether sprinklers existed in the buildings, whether they were single-story or multistory, and the total floor area. The use of sprinklers in all fires appears to reduce the expected damage considerably when judged from extreme losses. [@TWOS]
+```{r hist3, fig.cap = "Relationship between sprinkler system and estimated dollar lost", fig.width=12, fig.height=4, message=FALSE, echo=FALSE}
+data1<-data %>% group_by(Sprinkler_System_Operation) %>% summarise(Total = sum(Estimated_Dollar_Loss))
+data1 %>% filter(!is.na(Sprinkler_System_Operation)) %>% ggplot(aes( y=Total , x=Sprinkler_System_Operation)) + 
+    geom_bar(position="dodge", stat="identity")
+```
+
+The y-axis is the total estimated dollar loss after each fire incidents. Except the undetermined of the activation of the sprinkler system, the fourth bar which is the no presence of the sprinkler system estimated to cost the most dollar after a fire incident. The result seems that the forecast will reduce economic losses are not consistent. This can be explained that The research have shown that sprinklers can significantly reduce the likelihood of fires exceeding 100 square meters, but their effectiveness is usually minimal until the fire reaches 3 square meters.[@Eff]
+Without knowing the size of the area where the fire occurred, it is not possible to assess the effectiveness of sprinklers, because in any way sprinklers are effective for fires, but due to the activation mechanism of the device and some limitations of use, the effect on the fire is similarly limited, and activating the sprinklers means that the fire will be larger than if the sprinklers had not been activated, and even if the sprinklers can put out the fire in time, the possibility of greater economic loss due to the fire will be greater than if the sprinklers are not activated.
+
+```{r, echo=FALSE,include=FALSE}
+citation ()
+```
+
+# Reference
+
